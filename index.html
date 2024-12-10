@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝可梦收集器</title>
+    <style>
+        /* 页面基础样式 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 30px;
+            background-color: #4caf50;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+        }
+
+        /* 宝可梦列表样式 */
+        .pokemon-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pokemon-item {
+            width: 100px;
+            margin: 10px;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .pokemon-item:hover {
+            transform: scale(1.1);
+        }
+
+        .pokemon-item.collected {
+            background-color: #e0f7e0;
+        }
+
+        .pokemon-item.not-collected {
+            background-color: #f7e0e0;
+        }
+
+        .pokemon-id {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .pokemon-name {
+            font-size: 1em;
+            color: #333;
+        }
+
+        /* 按钮样式 */
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* 文件上传按钮样式 */
+        .upload-container {
+            position: relative;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        /* 隐藏默认的文件输入框 */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 自定义上传按钮样式 */
+        .custom-upload-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .custom-upload-btn:hover {
+            background-color: #007A8B;
+        }
+
+        /* 显示上传文件名称 */
+        .file-name {
+            margin-top: 10px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        /* 清除按钮样式 */
+        .clear-button {
+            background-color: #f44336;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .clear-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>宝可梦收集器</h1>
+
+        <!-- 进度条 -->
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+            <div id="progressText" class="progress-text">已收集 0 / 151 只宝可梦</div>
+        </div>
+
+        <!-- 宝可梦列表 -->
+        <div id="pokemonList" class="pokemon-list"></div>
+
+        <!-- 备份按钮 -->
+        <button id="backupButton">备份数据</button>
+
+        <!-- 自定义上传按钮 -->
+        <div class="upload-container">
+            <label for="uploadButton" class="custom-upload-btn">上传数据</label>
+            <input type="file" id="uploadButton" accept=".xlsx" />
+            <div id="fileName" class="file-name"></div>
+        </div>
+
+        <!-- 清除数据按钮 -->
+        <button id="clearButton" class="clear-button">清除数据</button>
+    </div>
+
+    <script>
+        // 宝可梦数据（包含151个宝可梦）
+        const pokemonData = [
+            { id: 1, name: "妙蛙種子" },
+            { id: 2, name: "妙蛙草" },
+            { id: 3, name: "妙蛙花" },
+            { id: 4, name: "小火龍" },
+            { id: 5, name: "火恐龍" },
+            { id: 6, name: "噴火龍" },
+            { id: 7, name: "傑尼龜" },
+            { id: 8, name: "卡咪龜" },
+            { id: 9, name: "水箭龜" },
+            { id: 10, name: "綠毛蟲" },
+            { id: 11, name: "鐵甲蛹" },
+            { id: 12, name: "巴大蝶" },
+            { id: 13, name: "獨角蟲" },
+            { id: 14, name: "鐵殼蛹" },
+            { id: 15, name: "大針蜂" },
+            { id: 16, name: "波波" },
+            { id: 17, name: "比比鳥" },
+            { id: 18, name: "大比鳥" },
+            { id: 19, name: "小拉達" },
+            { id: 20, name: "拉達" },
+            { id: 21, name: "烈雀" },
+            { id: 22, name: "大嘴雀" },
+            { id: 23, name: "阿柏蛇" },
+            { id: 24, name: "阿柏怪" },
+            { id: 25, name: "皮卡丘" },
+            { id: 26, name: "雷丘" },
+            { id: 27, name: "穿山鼠" },
+            { id: 28, name: "穿山王" },
+            { id: 29, name: "尼多蘭" },
+            { id: 30, name: "尼多娜" },
+            { id: 31, name: "尼多后" },
+            { id: 32, name: "尼多朗" },
+            { id: 33, name: "尼多力諾" },
+            { id: 34, name: "尼多王" },
+            { id: 35, name: "皮皮" },
+            { id: 36, name: "皮可西" },
+            { id: 37, name: "六尾" },
+            { id: 38, name: "九尾" },
+            { id: 39, name: "胖丁" },
+            { id: 40, name: "胖可丁" },
+            { id: 41, name: "超音蝠" },
+            { id: 42, name: "大嘴蝠" },
+            { id: 43, name: "走路草" },
+            { id: 44, name: "臭臭花" },
+            { id: 45, name: "霸王花" },
+            { id: 46, name: "派拉斯" },
+            { id: 47, name: "派拉斯特" },
+            { id: 48, name: "毛球" },
+            { id: 49, name: "摩魯蛾" },
+            { id: 50, name: "地鼠" },
+            { id: 51, name: "三地鼠" },
+            { id: 52, name: "喵喵" },
+            { id: 53, name: "貓老大" },
+            { id: 54, name: "可達鴨" },
+            { id: 55, name: "哥達鴨" },
+            { id: 56, name: "猴怪" },
+            { id: 57, name: "火爆猴" },
+            { id: 58, name: "卡蒂狗" },
+            { id: 59, name: "風速狗" },
+            { id: 60, name: "蚊香蝌蚪" },
+            { id: 61, name: "蚊香君" },
+            { id: 62, name: "蚊香泳士" },
+            { id: 63, name: "凱西" },
+            { id: 64, name: "勇基拉" },
+            { id: 65, name: "胡地" },
+            { id: 66, name: "腕力" },
+            { id: 67, name: "豪力" },
+            { id: 68, name: "怪力" },
+            { id: 69, name: "喇叭芽" },
+            { id: 70, name: "口呆花" },
+            { id: 71, name: "大食花" },
+            { id: 72, name: "瑪瑙水母" },
+            { id: 73, name: "毒刺水母" },
+            { id: 74, name: "小拳石" },
+            { id: 75, name: "隆隆石" },
+            { id: 76, name: "隆隆岩" },
+            { id: 77, name: "小火馬" },
+            { id: 78, name: "烈焰馬" },
+            { id: 79, name: "呆呆獸" },
+            { id: 80, name: "呆殼獸" },
+            { id: 81, name: "小磁怪" },
+            { id: 82, name: "三合一磁怪" },
+            { id: 83, name: "大蔥鴨" },
+            { id: 84, name: "嘟嘟" },
+            { id: 85, name: "嘟嘟利" },
+            { id: 86, name: "小海獅" },
+            { id: 87, name: "白海獅" },
+            { id: 88, name: "臭泥" },
+            { id: 89, name: "臭臭泥" },
+            { id: 90, name: "大舌貝" },
+            { id: 91, name: "刺甲貝" },
+            { id: 92, name: "鬼斯" },
+            { id: 93, name: "鬼斯通" },
+            { id: 94, name: "耿鬼" },
+            { id: 95, name: "大岩蛇" },
+            { id: 96, name: "催眠貘" },
+            { id: 97, name: "引夢貘人" },
+            { id: 98, name: "大鉗蟹" },
+            { id: 99, name: "巨鉗蟹" },
+            { id: 100, name: "霹靂電球" },
+            { id: 101, name: "頑皮雷彈" },
+            { id: 102, name: "蛋蛋" },
+            { id: 103, name: "椰蛋樹" },
+            { id: 104, name: "卡拉卡拉" },
+            { id: 105, name: "嘎啦嘎啦" },
+            { id: 106, name: "飛腿郎" },
+            { id: 107, name: "快拳郎" },
+            { id: 108, name: "大舌頭" },
+            { id: 109, name: "瓦斯彈" },
+            { id: 110, name: "雙彈瓦斯" },
+            { id: 111, name: "獨角犀牛" },
+            { id: 112, name: "鑽角犀獸" },
+            { id: 113, name: "吉利蛋" },
+            { id: 114, name: "蔓藤怪" },
+            { id: 115, name: "袋獸" },
+            { id: 116, name: "墨海馬" },
+            { id: 117, name: "海刺龍" },
+            { id: 118, name: "角金魚" },
+            { id: 119, name: "金魚王" },
+            { id: 120, name: "海星星" },
+            { id: 121, name: "寶石海星" },
+            { id: 122, name: "魔牆人偶" },
+            { id: 123, name: "飛天螳螂" },
+            { id: 124, name: "迷唇姐" },
+            { id: 125, name: "電擊獸" },
+            { id: 126, name: "鴨嘴火獸" },
+            { id: 127, name: "凱羅斯" },
+            { id: 128, name: "肯泰羅" },
+            { id: 129, name: "鯉魚王" },
+            { id: 130, name: "暴鯉龍" },
+            { id: 131, name: "拉普拉斯" },
+            { id: 132, name: "百變怪" },
+            { id: 133, name: "伊布" },
+            { id: 134, name: "水伊布" },
+            { id: 135, name: "雷伊布" },
+            { id: 136, name: "火伊布" },
+            { id: 137, name: "多邊獸" },
+            { id: 138, name: "菊石獸" },
+            { id: 139, name: "多刺菊石獸" },
+            { id: 140, name: "化石盔" },
+            { id: 141, name: "鐮刀盔" },
+            { id: 142, name: "化石翼龍" },
+            { id: 143, name: "卡比獸" },
+            { id: 144, name: "急凍鳥" },
+            { id: 145, name: "閃電鳥" },
+            { id: 146, name: "火焰鳥" },
+            { id: 147, name: "迷你龍" },
+            { id: 148, name: "哈克龍" },
+            { id: 149, name: "快龍" },
+            { id: 150, name: "超夢" },
+            { id: 151, name: "夢幻" }
+        ];
+        let collectedPokemons = JSON.parse(localStorage.getItem('collectedPokemons')) || [];
+
+        // 渲染宝可梦列表
+        function renderPokemonList() {
+            const pokemonList = document.getElementById('pokemonList');
+            pokemonList.innerHTML = ''; // 清空现有的列表
+            pokemonData.forEach(pokemon => {
+                const pokemonItem = document.createElement('div');
+                pokemonItem.className = 'pokemon-item ' + (collectedPokemons.includes(pokemon.id) ? 'collected' : 'not-collected');
+                pokemonItem.dataset.id = pokemon.id;
+
+                pokemonItem.innerHTML = `
+                    <div class="pokemon-id">${pokemon.id}</div>
+                    <div class="pokemon-name">${pokemon.name}</div>
+                `;
+                
+                pokemonItem.addEventListener('click', () => togglePokemonCollect(pokemon.id));
+
+                pokemonList.appendChild(pokemonItem);
+            });
+            updateProgressBar();
+        }
+
+        // 切换宝可梦是否被收集
+        function togglePokemonCollect(id) {
+            if (collectedPokemons.includes(id)) {
+                collectedPokemons = collectedPokemons.filter(pokemonId => pokemonId !== id);
+            } else {
+                collectedPokemons.push(id);
+            }
+
+            localStorage.setItem('collectedPokemons', JSON.stringify(collectedPokemons));
+            renderPokemonList();
+        }
+
+        // 更新进度条
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const collectedCount = collectedPokemons.length;
+            const totalCount = pokemonData.length;
+
+            const progress = (collectedCount / totalCount) * 100;
+            progressBar.style.width = progress + '%';
+            progressText.textContent = `已收集 ${collectedCount} / ${totalCount} 只宝可梦`;
+        }
+
+        // 备份数据按钮
+        document.getElementById('backupButton').addEventListener('click', () => {
+            if (collectedPokemons.length === 0) {
+                alert("没有收集的宝可梦数据可备份");
+                return;
+            }
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(collectedPokemons.map(id => {
+                return { id: id, name: pokemonData.find(pokemon => pokemon.id === id).name };
+            }));
+            XLSX.utils.book_append_sheet(wb, ws, "Collected Pokemons");
+
+            try {
+                XLSX.writeFile(wb, "pokemon_backup.xlsx");
+            } catch (error) {
+                console.error("备份时出错:", error);
+                alert("备份时出错，请重试！");
+            }
+        });
+
+        // 上传数据按钮
+        document.getElementById('uploadButton').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const wb = XLSX.read(event.target.result, { type: 'binary' });
+                        const ws = wb.Sheets["Collected Pokemons"];
+                        const data = XLSX.utils.sheet_to_json(ws);
+                        collectedPokemons = data.map(row => row.id);
+                        localStorage.setItem('collectedPokemons', JSON.stringify(collectedPokemons));
+                        renderPokemonList();
+                    } catch (error) {
+                        console.error("文件解析失败:", error);
+                        alert("上传的文件格式不正确，请上传有效的 Excel 文件！");
+                    }
+                };
+                reader.readAsBinaryString(file);
+            }
+        });
+
+        // 清除数据按钮
+        document.getElementById('clearButton').addEventListener('click', () => {
+            collectedPokemons = [];
+            localStorage.removeItem('collectedPokemons');
+            renderPokemonList();
+        });
+
+        // 初始化页面
+        renderPokemonList();
+    </script>
+</body>
+</html>
